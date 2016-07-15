@@ -161,7 +161,7 @@ if [ $DEBUG -ne 0 ]; then echo -e "\e[36m***DEBUG: SRC=$SRC \e[39m"; fi
 if [ ! -r $OUTFILE ]; then echo "#ts src dst hop host loss% rcv snt best avg worst" > $OUTFILE; fi
 
 #iterate through active destinations testing them.
-$AWK -F"," '$1=="A" { print $2 } ' $DSTLIST | ( while read p; do 
+$AWK -F"," '$1 ~ /^[Aa]/ { print $2 } ' $DSTLIST | ( while read p; do 
 
 	#pause while thread count high
 	while [ $($JOBS -r | $WC -l) -ge $MAXTHREADS ]; do sleep 1; done
