@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # amd_pathping Main Script
 # Chris Vidler - Dynatrace DCRUM SME 2016
 #
@@ -5,9 +6,10 @@
 #
 
 #config 
-DSTLIST=destinations.cfg
-CFGFILE=globalconfig.cfg
-BASEDIR=/var/spool/amd_pathping
+RTMGATE=/usr/adlex/config/config-access.properties
+DSTLIST=/usr/adlex/config/pathping_dests.cfg
+CFGFILE=/usr/adlex/config/pathping_conf.cfg
+BASEDIR=/var/spool/adlex/rtm
 MAXTHREADS=4
 DEBUG=0
 
@@ -23,6 +25,7 @@ MTU=1500
 #set -euo pipefail
 IFS=$',\n\t'
 AWK=`which awk`
+GREP=`which grep`
 SORT=`which sort`
 CAT=`which cat`
 JOBS=`which jobs`
@@ -75,26 +78,63 @@ fi
 if [ ! -r "$DSTLIST" ]
 then 
 	echo -e "\e[31m***FATAL:\e[39m Destinations config list file $DSTLIST not found. Aborting."
-	exit
+	exit 1
 fi
 
 if [ ! -r "$CFGFILE" ]
 then 
 	echo -e "\e[31m***FATAL:\e[39m Global config list file $CFGFILE not found. Aborting."
-	exit
+	exit 1
+fi
+
+if [ ! -r "$RTMGATE" ]
+then 
+	echo -e "\e[31m***FATAL:\e[39m RTMGATE config access file $CFGFILE not found/readable. Aborting."
+	exit 1
 fi
 
 if [ ! -w "$BASEDIR" ]
 then
 	echo -e "\e[31m***FATAL:\e[39m Output storage directory $BASEDIR not found or not writeable. Aborting."
-	exit
+	exit 1
 fi
 
 
 # Lets start things
-echo -e "amd_pathping script"
+echo -e "pathping-ng amd_pathping script"
 echo 
+
+
+echo -ne "Check rtmgate access permissions: "
+echo
+TESTRESULT=`$GREP "pathping_\*.cfg" "$RTMGATE"`
+if [ "$TESTRESULT" == "" ] 
+then
+	echo -e "rtmgate config not found, adding..."
+
+	# each line in the file is uniquely numbered, find the last one, and add one
+	LASTNUM=`$AWK -F"[.=]" '/ConfigFile/{a=$2}; END {print a};' "$RTMGATE"`
+	#echo "[$LASTNUM]"
+	NEWNUM=$((LASTNUM + 1))
+	#echo "[$NEWNUM]"
+	# check for write permissions
+	if [ ! -w "$RTMGATE" ] 
+	then
+		echo -e "\n\e[31m***FATAL:\e[39m rtmgate config $RTMGATE not writeable. Aborting."
+		exit 1
+	fi
+	# add new entry to rtmgate config
+	echo -e "ConfigFile.$NEWNUM=pathping_*.cfg\n" >> $RTMGATE
+	# restart rtmgate (safe, no outage to monitoring)
+	echo -e "Restarting RTMGATE daemon to enable change"
+	`systemctl restart rtmgate`
+else
+	echo "OK"
+fi
+
+
 echo -e "Loading global configuration from config file: $CFGFILE"
+echo
 
 #read global config file
 IFS="=";
@@ -182,7 +222,7 @@ done; wait
 
 #complete
 echo
-echo -e "amd_pathping script complete"
+echo -e "pathping-ng amd_pathping script complete"
 echo
 if [ $DEBUG -ne 0 ]; then echo -e "\e[36m***DEBUG: Output follows:"; cat $OUTFILE; echo -e "\e[39m"; fi
 
