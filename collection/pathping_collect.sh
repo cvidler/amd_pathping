@@ -39,7 +39,7 @@ function techo {
 tstart=`date -u +%s`
 techo "pathping-ng collection script"
 
-#command line parameters
+# command line parameters
 OPTS=1
 while getopts ":hda:b:" OPT; do
 	case $OPT in
