@@ -5,7 +5,7 @@
 # Reads destinations file, and produces data data on network routing and loss.
 #
 
-#config 
+# config 
 RTMGATE=/usr/adlex/config/config-access.properties
 DSTLIST=/usr/adlex/config/pathping_dests.cfg
 CFGFILE=/usr/adlex/config/pathping_conf.cfg
@@ -13,7 +13,7 @@ BASEDIR=/var/spool/adlex/rtm
 MAXTHREADS=4
 DEBUG=0
 
-#defaults global config can override
+# defaults global config can override
 MAXHOPS=10
 TESTS=10
 INTERVAL=1.0
@@ -22,7 +22,8 @@ MTU=1500
 
 
 # Start of script - do not edit below
-#set -euo pipefail
+echo -e "pathping-ng amd_pathping script"
+
 IFS=$',\n\t'
 AWK=`which awk`
 GREP=`which grep`
@@ -30,11 +31,14 @@ SORT=`which sort`
 CAT=`which cat`
 JOBS=`which jobs`
 WC=`which wc`
-#MTR=`which mtr`
+MTR=`which mtr`
 MTR=/home/data_mine/mtr/mtr
 if [ $? -ne 0 ]; then echo -e "fatal MTR not found in path/not installed"; exit 1; fi
 
-#command line parameters
+# strict error handling
+set -euo pipefail
+
+# command line parameters
 OPTS=1
 while getopts ":hdc:l:o:" OPT; do
 	case $OPT in
@@ -101,7 +105,6 @@ fi
 
 
 # Lets start things
-echo -e "pathping-ng amd_pathping script"
 echo 
 
 
@@ -166,13 +169,15 @@ while read a v; do
 done < $CFGFILE
 IFS=$',\n\t'
 
-#mtr needs root for intervals below 1 second, check the config and if root or not.
+# mtr needs root for intervals below 1 second, check the config and if root or not.
+#echo "[$INTERVAL]"
+if [[ $INTERVAL =~ 0\.[0-9]+ ]]; then
 #if (( $(echo "$INTERVAL < 1.0" | bc -l) )); then
-#	if [ $EUID -ne 0 ]; then
-#		echo -e "\e[31m***FATAL:\e[39m <1.0 sec Interval requires root."
-#		exit 1
-#	fi
-#fi
+	if [ $EUID -ne 0 ]; then
+		echo -e "\e[31m***FATAL:\e[39m <1.0 sec Interval requires root."
+		exit 1
+	fi
+fi
 
 #display global configs
 echo -e "  Timeout:  $TIMEOUT"
