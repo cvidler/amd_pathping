@@ -10,10 +10,9 @@
 # Configuration
 AMDLIST=/etc/amdlist.cfg
 DSTLIST=/etc/pathping/pathpingdests.cfg
-#CFGFILE=/etc/pathping/pathpingconf.cfg
-CFGFILE=/etc/pathping/pathpingconf.lua
+CFGFILE=/etc/pathping/pathpingconf.cfg
 PIDFILE=/tmp/pathping-publish.pid
-
+MAXTHREADS=4
 
 
 # Script follows, do not edit.
@@ -132,15 +131,18 @@ while IFS=$',' read -r p q; do
 
 		# send global config
 		GC_FILE=`mktemp -t pathpingng.XXXXXXXX`
-		gzip -c "$CFGFILE" > "$GC_FILE"
-		GC_RESP=`$CURL --insecure --silent --retry 3 --basic -F "cfg_oper=console_put;type=text/plain" -F "cfg_trans=$TRANS;type=text/plain" -F "cfg_data=@$GC_FILE;type=application/octet-stream;filename=cfg_data;Content-Transfer-Encoding=binary" -F "cfg_file=pathping_conf.cfg;type=text/plain" -F "cfg_tstamp=0;type=text/plain" "$q/RtmConfigServlet"`
+		cp "$CFGFILE" "$GC_FILE"
+		GC_NAME=$(basename "$CFGFILE")
+		GC_RESP=`$CURL --insecure --silent --retry 3 --basic --data-urlencode "cfg_data@$GC_FILE" "$q/RtmConfigServlet?cfg_trans=$TRANS&cfg_oper=put_cfg_file&cfg_file=$GC_NAME&cfg_tstamp=0"`
 		echo "GC_RESP[$GC_RESP]"
 		rm -f "$GC_FILE"
 
 		# send destinations list
 		DL_FILE=`mktemp -t pathpingng.XXXXXXXX`
-		gzip -c "$DSTLIST" > "$DL_FILE"
-		DL_RESP=`$CURL --insecure --silent --retry 3 --basic -F "cfg_oper=console_put;type=text/plain" -F "cfg_trans=$TRANS;type=text/plain" -F "cfg_data=@$DL_FILE;type=application/octet-stream;filename=cfg_data;content-transfer-encoding=binary" -F "cfg_file=pathping_dests.cfg;type=text/plain" -F "cfg_tstamp=0;type=text/plain" "$q/RtmConfigServlet"`
+		#gzip -c "$DSTLIST" > "$DL_FILE"
+		cp "$DSTLIST" "$DL_FILE"
+		DL_NAME=$(basename "$DSTLIST")
+		DL_RESP=`$CURL --insecure --silent --retry 3 --basic --data-urlencode "cfg_data@$DL_FILE" "$q/RtmConfigServlet?cfg_trans=$TRANS&cfg_oper=put_cfg_file&cfg_file=$DL_NAME&cfg_tstamp=0"`
 		echo "DL_RESP[$DL_RESP]"
 		rm -f "$DL_FILE"
 
