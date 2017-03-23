@@ -13,7 +13,7 @@ DSTLIST=/etc/pathping/pathpingdests.cfg
 CFGFILE=/etc/pathping/pathpingconf.cfg
 PIDFILE=/tmp/pathping-publish.pid
 MAXTHREADS=4
-
+DEBUG=0
 
 # Script follows, do not edit.
 
@@ -127,28 +127,31 @@ while IFS=$',' read -r p q; do
 
 		# start a config update transaction
 		TRANS=`$CURL --insecure --silent --retry 3 --basic "$q/RtmConfigServlet?cfg_oper=start_trans&cfg_trans_life=300000"`
-		echo "TRANS[$TRANS]"
+		debugecho "TRANS[$TRANS]"
 
 		# send global config
 		GC_FILE=`mktemp -t pathpingng.XXXXXXXX`
 		cp "$CFGFILE" "$GC_FILE"
 		GC_NAME=$(basename "$CFGFILE")
 		GC_RESP=`$CURL --insecure --silent --retry 3 --basic --data-urlencode "cfg_data@$GC_FILE" "$q/RtmConfigServlet?cfg_trans=$TRANS&cfg_oper=put_cfg_file&cfg_file=$GC_NAME&cfg_tstamp=0"`
-		echo "GC_RESP[$GC_RESP]"
+		debugecho "GC_RESP[$GC_RESP]"
 		rm -f "$GC_FILE"
 
 		# send destinations list
 		DL_FILE=`mktemp -t pathpingng.XXXXXXXX`
-		#gzip -c "$DSTLIST" > "$DL_FILE"
 		cp "$DSTLIST" "$DL_FILE"
 		DL_NAME=$(basename "$DSTLIST")
 		DL_RESP=`$CURL --insecure --silent --retry 3 --basic --data-urlencode "cfg_data@$DL_FILE" "$q/RtmConfigServlet?cfg_trans=$TRANS&cfg_oper=put_cfg_file&cfg_file=$DL_NAME&cfg_tstamp=0"`
-		echo "DL_RESP[$DL_RESP]"
+		debugecho "DL_RESP[$DL_RESP]"
 		rm -f "$DL_FILE"
 
 		# close transaction
 		CLOSE_TRANS=`$CURL --insecure --silent --retry 3 --basic "$q/RtmConfigServlet?cfg_oper=commit_trans&cfg_trans=$TRANS"`
-		echo "CLOSE_TRANS[$CLOSE_TRANS]"		
+		debugecho "CLOSE_TRANS[$CLOSE_TRANS]"		
+
+		if [ $DL_RESP -ne 0 ] || [ $GC_RESP -ne 0 ]; then
+			echo "Couldn't publish config to ${p}."
+		fi
 
 		wait;
 	)
