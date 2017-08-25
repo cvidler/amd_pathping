@@ -12,18 +12,18 @@
     {"id": "2_8.8.8.8", "name": "8.8.8.8", "group": 2, "hopcount": 10}
   ],
   "links": [
-    {"source": "172.16.51.165", "target": "172.16.51.254", "value": 1.636, "hopcount": 20},
-    {"source": "172.16.51.254", "target": "119.17.37.141", "value": 7.873, "hopcount": 20},
-    {"source": "119.17.37.141", "target": "218.100.52.3", "value": 8.023, "hopcount": 20},
-    {"source": "218.100.52.3", "target": "108.170.247.81", "value": 7.762, "hopcount": 20},
-    {"source": "108.170.247.81", "target": "74.125.37.201", "value": 10.159, "hopcount": 20},
-    {"source": "74.125.37.201", "target": "172.217.25.131", "value": 9.123, "hopcount": 20},
+    {"source": "172.16.51.165", "target": "172.16.51.254", "latency": 1.636, "hopcount": 20},
+    {"source": "172.16.51.254", "target": "119.17.37.141", "latency": 7.873, "hopcount": 20},
+    {"source": "119.17.37.141", "target": "218.100.52.3", "latency": 8.023, "hopcount": 20},
+    {"source": "218.100.52.3", "target": "108.170.247.81", "latency": 7.762, "hopcount": 20},
+    {"source": "108.170.247.81", "target": "74.125.37.201", "latency": 10.159, "hopcount": 20},
+    {"source": "74.125.37.201", "target": "172.217.25.131", "latency": 9.123, "hopcount": 20},
 
-    {"source": "172.16.51.165", "target": "172.16.51.254", "value": 2.030, "hopcount": 10},
-    {"source": "172.16.51.254", "target": "119.17.37.141", "value": 7.629, "hopcount": 10},
-    {"source": "119.17.37.141", "target": "218.100.52.3", "value": 7.534, "hopcount": 10},
-    {"source": "218.100.52.3", "target": "2_108.170.247.65", "value": 11.532, "hopcount": 10},
-    {"source": "2_108.170.247.65", "target": "2_216.239.40.255", "value": 8.118, "lost": 10, "hopcount": 10},
-    {"source": "2_216.239.40.255", "target": "2_8.8.8.8", "value": 8.108, "hopcount": 10}
+    {"source": "172.16.51.165", "target": "172.16.51.254", "latency": 2.030, "hopcount": 10},
+    {"source": "172.16.51.254", "target": "119.17.37.141", "latency": 7.629, "hopcount": 10},
+    {"source": "119.17.37.141", "target": "218.100.52.3", "latency": 7.534, "hopcount": 10},
+    {"source": "218.100.52.3", "target": "2_108.170.247.65", "latency": 11.532, "hopcount": 10},
+    {"source": "2_108.170.247.65", "target": "2_216.239.40.255", "latency": 8.118, "lost": 10, "hopcount": 10},
+    {"source": "2_216.239.40.255", "target": "2_8.8.8.8", "latency": 8.108, "hopcount": 10}
   ]
 }
