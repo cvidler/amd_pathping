@@ -85,9 +85,9 @@ build_node() {
 build_link() {
   # group# sourceip targetip latency lostcount hopcount
   if [ $5 -gt 0 ]; then
-    echo '{"source": "'$1'_'$2'", "target": "'$1'_'$3'", "latency": '$4', "lost": '$5', "hopcount": '$6'}'
+    echo '{"source": "'$2'", "target": "'$3'", "latency": '$4', "lost": '$5', "hopcount": '$6'}'
   else
-    echo '{"source": "'$1'_'$2'", "target": "'$1'_'$3'", "latency": '$4', "hopcount": '$6'}'
+    echo '{"source": "'$2'", "target": "'$3'", "latency": '$4', "hopcount": '$6'}'
   fi
 }
 
@@ -138,43 +138,75 @@ if [ ! -r $DATAFILE ]; then echo "File $DATAFILE not readable!"; exit 1;  fi
 
 
 # dummy/test code
-echo "testing build_node: "$(build_node 1 "1.1.1.1" "fqdn" 10)
-echo "testing build_link: "$(build_link 1 "1.1.1.1" "1.1.1.2" 1.000 1 20)
-echo "testing build_link: "$(build_link 1 "1.1.1.1" "1.1.1.2" 1.000 0 20)
-
-
-NODES=("$(build_node 1 "1.1.1.1" "fqdn" 10)" '{"id": "172.16.51.254", "name": "172.16.51.254", "group": 1, "hopcount": 30}' '{"id": "119.17.37.141", "name": "119.17.37.141", "group": 1, "hopcount": 30}')
-LINKS=("$(build_link 2 "2.2.2.2" "3.3.3.3" 1.001 0 10)" '{"source": "172.16.51.165", "target": "172.16.51.254", "value": 1.636, "hopcount": 20}' '{"source": "172.16.51.254", "target": "119.17.37.141", "value": 7.873, "hopcount": 20}')
-
-echo "example json output"
-echo -ne "{\n\"nodes\": "
-json_array "${NODES[@]}"
-echo -ne ",\n\"links\": "
-json_array "${LINKS[@]}"
-echo -ne "\n}\n"
-
-echo "testing done"
+#echo "testing build_node: "$(build_node 1 "1.1.1.1" "fqdn" 10)
+#echo "testing build_link: "$(build_link 1 "1.1.1.1" "1.1.1.2" 1.000 1 20)
+#echo "testing build_link: "$(build_link 1 "1.1.1.1" "1.1.1.2" 1.000 0 20)
+#
+#NODES=("$(build_node 1 "1.1.1.1" "fqdn" 10)" '{"id": "172.16.51.254", "name": "172.16.51.254", "group": 1, "hopcount": 30}' '{"id": "119.17.37.141", "name": "119.17.37.141", "group": 1, "hopcount": 30}')
+#LINKS=("$(build_link 2 "2.2.2.2" "3.3.3.3" 1.001 0 10)" '{"source": "172.16.51.165", "target": "172.16.51.254", "value": 1.636, "hopcount": 20}' '{"source": "172.16.51.254", "target": "119.17.37.141", "value": 7.873, "hopcount": 20}')
+#
+#echo "example json output"
+#echo -ne "{\n\"nodes\": "
+#json_array "${NODES[@]}"
+#echo -ne ",\n\"links\": "
+#json_array "${LINKS[@]}"
+#echo -ne "\n}\n"
+#
+#echo "testing done"
 
 
 
 # read file
 SOURCE=`awk -F" " ' $1 ~ /[0-9a-f]{8}/  { src[$2]++; } END { for (ip in src) { printf("%s,",ip);} }  ' $DATAFILE`
+SOURCE=${SOURCE%,}
 debugecho "Source: [$SOURCE]"
 
 A_DEST=`awk -F" " ' $1 ~ /[0-9a-f]{8}/  { dst[$3]++; } END { for (ip in dst) { printf("%s,",ip);} }  ' $DATAFILE`
+A_DEST=${A_DEST%,}
 debugecho "Dests:  [$A_DEST]"
 
 A_NODES=`awk -F" " ' $1 ~ /[0-9a-f]{8}/  { nodes[$5]++; } END { for (ip in nodes) { printf("%s,",ip);} }  ' $DATAFILE`
+A_NODES=${A_NODES%,}
 debugecho "Nodes:  [$A_NODES]"
 
+declare -a NODES
+declare -a LINKS
+GROUP=0
+prev_hop=""
+
 IFS=,
-for dst in $A_DEST; do
-  debugecho "dst: [$dst]"
-  A_HOPS=`awk -F" " ' $1 ~ /[0-9a-f]{8}/ && $3 == "'$dst'" { print $0; } ' $DATAFILE`
+NODES+=("$(build_node 0 "0_$SOURCE" "$SOURCE" 100)")
+for ldst in $A_DEST; do
+  debugecho "ldst: [$ldst]"
+  if [ "$ldst" == "" ]; then continue; fi
+  A_HOPS=`awk -F" " ' $1 ~ /[0-9a-f]{8}/ && $3 == "'$ldst'" { print $0; } ' $DATAFILE`
   debugecho "A_HOPS: [$A_HOPS]"
+  
+  while IFS=" " read -r ts src dst hopnum hop sent recv lost lossr best avg worst; do
+
+    debugecho "GROUP: [$GROUP] prev_hop: [$prev_hop] hop: [$hop] hopnum: [$hopnum] best: [$best] avg: [$avg]"
+    if [ "$hopnum" == "" ]; then continue; fi		# we're done
+    if [ $hopnum -eq 1 ]; then GROUP=$((GROUP + 1)); prev_hop="0_$src"; fi
+    debugecho "GROUP: [$GROUP] prev_hop: [$prev_hop] hop: [$hop] hopnum: [$hopnum] best: [$best] avg: [$avg]"
+
+	name=$hop
+	if [ "$hop" == "$src" ]; then hop="0_$hop"; else hop="${GROUP}_$hop"; fi
+    NODES+=("$(build_node $GROUP "$hop" "$name" $sent)")
+    debugecho '|${NODES[@]}|' 2
+
+    LINKS+=("$(build_link $GROUP "$prev_hop" "$hop" $avg $lost $sent)")
+    debugecho '|${LINKS[@]}|' 2
+    prev_hop=$hop
+
+  done < <(echo $A_HOPS)
 done
 
-#PARSED=`awk -F" " ' $1 ~ /[0-9a-f]{8}/  { src=$2; dst=$3; hop=$4; host=$5; lost=$6; avg=$9; printf("src_%s ",src); printf("dst_%s ",dst); printf("%s ",hop); printf("hop_%s_%s_%s\%_%sms\n",hop,host,lost,avg) }  ' $DATAFILE`
-#echo $PARSED
+#output final JSON
+IFS=""
+echo -ne "{\n\"nodes\": "
+json_array "${NODES[@]}"
+echo -ne ",\n\"links\": "
+json_array "${LINKS[@]}"
+echo -ne "\n}\n"
 
 

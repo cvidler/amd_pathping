@@ -41,7 +41,7 @@ var simulation = d3.forceSimulation()
     .force("charge", d3.forceManyBody())
     .force("center", d3.forceCenter(width / 2, height / 2));
 
-d3.json("route2.json", function(error, graph) {
+d3.json("route3.json", function(error, graph) {
   if (error) throw error;
 
   var link = svg.append("g")
@@ -53,7 +53,7 @@ d3.json("route2.json", function(error, graph) {
       .attr("class", function(d) { return d.lost > 0 ? "lostlinks" : "links"; });     	// line colour based on lost packet count
 
   link.append("title")
-    .text(function(d) { return d.lost > 0 ? "Latency: "+d.value+" ms Hops: "+d.hopcount+" Lost: "+d.lost+ " "+((d.lost/d.hopcount)*100)+"%" : "Latency: "+d.value+" ms Hops: "+d.hopcount; })
+    .text(function(d) { return d.lost > 0 ? "Latency: "+d.latency+" ms Hops: "+d.hopcount+" Lost: "+d.lost+ " "+((d.lost/d.hopcount)*100)+"%" : "Latency: "+d.latency+" ms Hops: "+d.hopcount; })
 
 
   var node = svg.append("g")
