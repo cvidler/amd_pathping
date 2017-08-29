@@ -169,37 +169,71 @@ A_NODES=`awk -F" " ' $1 ~ /[0-9a-f]{8}/  { nodes[$5]++; } END { for (ip in nodes
 A_NODES=${A_NODES%,}
 debugecho "Nodes:  [$A_NODES]"
 
+IFS=,
+declare -a A_NODEREF
+declare -A A_NODEBREF
+declare -a A_NODEHOPS
+
+A_NODEREF[0]=$SOURCE
+A_NODEBREF[$SOURCE]=0
+A_NODEHOPS[0]=0
+i=0
+for n in $A_NODES; do
+  i=$(($i + 1))
+  A_NODEREF[$i]=$n
+  A_NODEBREF[$n]=$i
+  A_NODEHOPS[$i]=0
+done
+
 declare -a NODES
 declare -a LINKS
 GROUP=0
 prev_hop=""
 
 IFS=,
-NODES+=("$(build_node 0 "0_$SOURCE" "$SOURCE" 100)")
+#NODES+=("$(build_node 0 "0_$SOURCE" "$SOURCE" 100)")	#hop count of 100 because we're not actually tracking it properly yet. makes it big enough to be the obvious source node though :)
 for ldst in $A_DEST; do
-  debugecho "ldst: [$ldst]"
+  #debugecho "ldst: [$ldst]"
   if [ "$ldst" == "" ]; then continue; fi
   A_HOPS=`awk -F" " ' $1 ~ /[0-9a-f]{8}/ && $3 == "'$ldst'" { print $0; } ' $DATAFILE`
-  debugecho "A_HOPS: [$A_HOPS]"
+  #debugecho "A_HOPS: [$A_HOPS]" 2
   
   while IFS=" " read -r ts src dst hopnum hop sent recv lost lossr best avg worst; do
 
-    debugecho "GROUP: [$GROUP] prev_hop: [$prev_hop] hop: [$hop] hopnum: [$hopnum] best: [$best] avg: [$avg]"
+    #debugecho "GROUP: [$GROUP] prev_hop: [$prev_hop] hop: [$hop] hopnum: [$hopnum] best: [$best] avg: [$avg]"
     if [ "$hopnum" == "" ]; then continue; fi		# we're done
-    if [ $hopnum -eq 1 ]; then GROUP=$((GROUP + 1)); prev_hop="0_$src"; fi
-    debugecho "GROUP: [$GROUP] prev_hop: [$prev_hop] hop: [$hop] hopnum: [$hopnum] best: [$best] avg: [$avg]"
+    if [ $hopnum -eq 1 ]; then GROUP=$((GROUP + 1)); prev_hop="0_$src"; A_NODEHOPS[0]=$((${A_NODEHOPS[0]} + $sent)); fi
+    #debugecho "GROUP: [$GROUP] prev_hop: [$prev_hop] hop: [$hop] hopnum: [$hopnum] best: [$best] avg: [$avg]"
 
 	name=$hop
-	if [ "$hop" == "$src" ]; then hop="0_$hop"; else hop="${GROUP}_$hop"; fi
-    NODES+=("$(build_node $GROUP "$hop" "$name" $sent)")
-    debugecho '|${NODES[@]}|' 2
+    nodei=${A_NODEBREF[$hop]}
+    A_NODEHOPS[$nodei]=$((${A_NODEHOPS[$nodei]} + $sent))
+    hop="${nodei}_${name}"
+    debugecho "$GROUP $name $hop $nodei $sent"
+	#if [ "$hop" == "$src" ]; then hop="0_$hop"; else hop="${GROUP}_$hop"; fi
+    #NODES+=("$(build_node $GROUP "$hop" "$name" $sent)")
+    #debugecho '|${NODES[@]}|' 2
 
     LINKS+=("$(build_link $GROUP "$prev_hop" "$hop" $avg $lost $sent)")
-    debugecho '|${LINKS[@]}|' 2
+    #debugecho '|${LINKS[@]}|' 2
     prev_hop=$hop
 
   done < <(echo $A_HOPS)
 done
+
+#make nodes AFTER making links, that way we can track the hop counts and unique nodes properly.
+#echo ${A_NODEREF[@]}
+for hop in ${A_NODEREF[@]}; do
+  #echo -n $hop
+  GROUP=${A_NODEBREF[$hop]}
+  #echo -n " "$GROUP
+  name="${GROUP}_$hop"
+  #echo " "$name
+  sent=${A_NODEHOPS[$GROUP]}
+  #echo "$GROUP $hop $name $sent"
+  NODES+=("$(build_node $GROUP "$name" "$hop" $sent)")
+done
+
 
 #output final JSON
 IFS=""
