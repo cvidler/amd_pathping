@@ -9,16 +9,18 @@
 .links {
   stroke: #999;
   stroke-opacity: 0.6;
+  stroke-linecap: round;
 }
 
 .lostlinks {
   stroke: #f55;
-  stroke-opacity: 1.0;
+  stroke-opacity: 0.6;
+  stroke-linecap: round;
 }
 
 .nodes circle {
-  stroke: #fff;
-  stroke-width: 1.5px;
+  stroke: #000;
+  stroke-width: 0.5px;
 }
 
 </style>
@@ -29,6 +31,26 @@
 
 <script src="d3.js"></script>
 <script>
+
+function parse_query_string(query) {
+  var vars = query.split("&");
+  var query_string = {};
+  for (var i = 0; i < vars.length; i++) {
+    var pair = vars[i].split("=");
+    // If first entry with this name
+    if (typeof query_string[pair[0]] === "undefined") {
+      query_string[pair[0]] = decodeURIComponent(pair[1]);
+      // If second entry with this name
+    } else if (typeof query_string[pair[0]] === "string") {
+      var arr = [query_string[pair[0]], decodeURIComponent(pair[1])];
+      query_string[pair[0]] = arr;
+      // If third or later entry with this name
+    } else {
+      query_string[pair[0]].push(decodeURIComponent(pair[1]));
+    }
+  }
+  return query_string;
+}
 
 var svg = d3.select("svg"),
     width = +svg.attr("width"),
@@ -41,7 +63,13 @@ var simulation = d3.forceSimulation()
     .force("charge", d3.forceManyBody())
     .force("center", d3.forceCenter(width / 2, height / 2));
 
-d3.json("route3.json", function(error, graph) {
+var query = window.location.search.substring(1);
+var qs = parse_query_string(query);
+var filename = qs.file;
+console.log(filename);
+
+
+d3.json(filename, function(error, graph) {
   if (error) throw error;
 
   var link = svg.append("g")
