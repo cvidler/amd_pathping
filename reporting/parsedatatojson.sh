@@ -79,15 +79,15 @@ json_array() {
 
 build_node() {
   # group# ipaddress name/ip hopcount
-  echo '{"id": "'$2'", "name": "'$3'", "group": '$1', "hopcount": '$4'}'
+  echo '{"id": '$2', "name": "'$3'", "group": '$1', "hopcount": '$4'}'
 }
 
 build_link() {
   # group# sourceip targetip latency lostcount hopcount
   if [ $5 -gt 0 ]; then
-    echo '{"source": "'$2'", "target": "'$3'", "latency": '$4', "lost": '$5', "hopcount": '$6'}'
+    echo '{"source": '$2', "target": '$3', "latency": '$4', "lost": '$5', "hopcount": '$6'}'
   else
-    echo '{"source": "'$2'", "target": "'$3'", "latency": '$4', "hopcount": '$6'}'
+    echo '{"source": '$2', "target": '$3', "latency": '$4', "hopcount": '$6'}'
   fi
 }
 
@@ -202,7 +202,7 @@ for ldst in $A_DEST; do
 
     #debugecho "GROUP: [$GROUP] prev_hop: [$prev_hop] hop: [$hop] hopnum: [$hopnum] best: [$best] avg: [$avg]"
     if [ "$hopnum" == "" ]; then continue; fi		# we're done
-    if [ $hopnum -eq 1 ]; then GROUP=$((GROUP + 1)); prev_hop="0_$src"; A_NODEHOPS[0]=$((${A_NODEHOPS[0]} + $sent)); fi
+    if [ $hopnum -eq 1 ]; then GROUP=$((GROUP + 1)); prev_hop="0"; A_NODEHOPS[0]=$((${A_NODEHOPS[0]} + $sent)); fi
     #debugecho "GROUP: [$GROUP] prev_hop: [$prev_hop] hop: [$hop] hopnum: [$hopnum] best: [$best] avg: [$avg]"
 
 	name=$hop
@@ -214,9 +214,9 @@ for ldst in $A_DEST; do
     #NODES+=("$(build_node $GROUP "$hop" "$name" $sent)")
     #debugecho '|${NODES[@]}|' 2
 
-    LINKS+=("$(build_link $GROUP "$prev_hop" "$hop" $avg $lost $sent)")
+    LINKS+=("$(build_link $GROUP $prev_hop $nodei $avg $lost $sent)")
     #debugecho '|${LINKS[@]}|' 2
-    prev_hop=$hop
+    prev_hop=$nodei
 
   done < <(echo $A_HOPS)
 done
@@ -227,7 +227,7 @@ for hop in ${A_NODEREF[@]}; do
   #echo -n $hop
   GROUP=${A_NODEBREF[$hop]}
   #echo -n " "$GROUP
-  name="${GROUP}_$hop"
+  name="${GROUP}"
   #echo " "$name
   sent=${A_NODEHOPS[$GROUP]}
   #echo "$GROUP $hop $name $sent"
