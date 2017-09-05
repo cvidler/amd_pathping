@@ -178,7 +178,7 @@ d3.json(filename, function(error, json) {
 
     circle.append("circle")
 		//.call(drag)
-	    .attr("fill", function(d) { return d3.scale.category20().range()[d.group]; })
+	    .attr("fill", function(d) { return d.name == "???" ? "#000" : d3.scale.category20().range()[d.group % 20]; })
         .attr("r", function(d) { 
 			r=Math.sqrt(parseInt(d.hopcount) * 1);
 			maxr=maxr < r ? r : maxr;
