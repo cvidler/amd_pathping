@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<html>
 <head>
   <meta charset="utf-8">
   <script src="lodash.min.js"></script>
@@ -25,9 +26,32 @@
 	  font: 10px sans-serif;
 	  font-color: 000;
 	}
+
+	svg {
+	  font: 10px sans-serif;
+	}
+
+	rect {
+	  fill: #ddd;
+	}
+
+	.axis path,
+	.axis line {
+	  fill: none;
+	  stroke: #fff;
+	}
+
+	button {
+	  position: absolute;
+	  right: 30px;
+	  top: 30px;
+	  z-index: 1000000;
+	}
+
   </style>
 </head>
 <body>
+<button>Reset Zoom</button>
   <script>
     
     // DATA
@@ -82,6 +106,7 @@ d3.json(filename, function(error, json) {
         var sameAll = same.concat(sameAlt);
 
         _.each(sameAll, function(s, i) {
+			s.testIndex = i;
             s.sameIndex = (i + 1);
             s.sameTotal = sameAll.length;
             s.sameTotalHalf = (s.sameTotal / 2);
@@ -113,7 +138,10 @@ d3.json(filename, function(error, json) {
 			d.x += d3.event.dx;
 			d.y += d3.event.dy; 
 			tick(); // this is the key to make it work together with updating both px,py,x,y on d !
-        });
+        })
+		.on("dragstart", function(d,i) {
+			  d3.event.sourceEvent.stopPropagation();
+		});
 
 
 	// DISPLAY SIZE
@@ -146,6 +174,12 @@ d3.json(filename, function(error, json) {
     //     }
     //     force.stop();
 
+	// PAN & ZOOM
+
+	var zoom = d3.behavior.zoom()
+	  .scaleExtent([1, 10])
+	  .on("zoom", zoomed);
+
     // RENDER
 
 	var latencycolour = d3.scale.linear().domain([1,200])
@@ -154,9 +188,13 @@ d3.json(filename, function(error, json) {
 
     var svg = d3.select("body").append("svg")
         .attr("width", width)
-        .attr("height", height);
+        .attr("height", height)
+		.attr("transform", "translate(" + 0 + "," + 0 + ")")
+		.call(zoom);
 
-    var path = svg.append("g").selectAll("path")
+	var container = svg.append("g")
+
+    var path = container.append("g").selectAll("path")
         .data(force.links())
         .enter().append("path")
         .style("stroke", function(d) {
@@ -167,10 +205,9 @@ d3.json(filename, function(error, json) {
         });
 
     path.append("title")
-      .text(function(d) { return d.lost > 0 ? "Latency: "+d.latency+"ms \nHops: "+d.hopcount+" \nLost: "+d.lost+ " "+((d.lost/d.hopcount)*100)+"%" : "Latency: "+d.latency+" ms \nHops: "+d.hopcount; })
+      .text(function(d) { return d.lost > 0 ? "Test #"+d.testIndex+"\nLatency: "+d.latency+"ms \nHops: "+d.hopcount+" \nLost: "+d.lost+ " "+((d.lost/d.hopcount)*100)+"%" : "Test #"+d.testIndex+"\nLatency: "+d.latency+" ms \nHops: "+d.hopcount; })
 
-
-    var circle= svg.append("g").selectAll("circle")
+    var circle= container.append("g").selectAll("circle")
         .data(force.nodes())
         .enter().append("g")
         .call(drag)
@@ -182,7 +219,7 @@ d3.json(filename, function(error, json) {
         .attr("r", function(d) { 
 			r=Math.sqrt(parseInt(d.hopcount) * 1);
 			maxr=maxr < r ? r : maxr;
-			console.log(maxr);
+			//console.log(maxr);
 			return r < 4 ? 4 : r; 
 		});
 
@@ -194,10 +231,10 @@ d3.json(filename, function(error, json) {
     circle.append("title")
       .text(function(d) { return "IP: " + d.name + " \nHops: " + d.hopcount; });
 
-
     // TICK
 
     function tick(d) {
+		//d3.event.sourceEvent.stopPropagation();
         circle.attr("transform", function(d) {
             return "translate(" + d.x + "," + d.y + ")";
         });
@@ -221,9 +258,28 @@ d3.json(filename, function(error, json) {
         return "M" + d.source.x + "," + d.source.y + "A" + arc + "," + arc + " 0 0," + d.sameArcDirection + " " + d.target.x + "," + d.target.y;
     }
 
+	d3.select("button").on("click", reset);
+
+	// ZOOM FUNCTIONS
+
+	function zoomed() {
+	  container.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+	}
+
+	function reset() {
+	  //console.log("reset");
+	  //svg.zoom.scale(1);
+	  //zoom.translate(0,0);
+	  //container.attr("transform","translate(0,0)scale(1)");
+	  zoom.scale(1);
+	  zoom.translate(0,0);
+	  zoomed();
+	}
+
 })
 
 
   </script>
 </body>
+</html>
 
