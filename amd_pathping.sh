@@ -235,7 +235,7 @@ techo
 # generate hourly data files
 TIMESTAMP=`date -d "\`date -u +"%Y-%m-%d %H:00:00"\`" +%s` ; TIMESTAMP=`printf "%x" $TIMESTAMP`
 debugecho "TIMESTAMP=$TIMESTAMP"
-OUTFILE="$BASEDIR/pathping_${TIMESTAMP}_e10_t"
+OUTFILE="$BASEDIR/pathping_${TIMESTAMP}_3c_t"
 debugecho "OUTFILE=$OUTFILE"
 
 # determine active interface
